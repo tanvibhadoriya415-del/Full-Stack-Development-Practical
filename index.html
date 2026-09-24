@@ -1,0 +1,512 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Quiz & Weather Dashboard</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef2ff;
+    color: #202b43;
+}
+
+header {
+    background: #273c75;
+    color: white;
+    text-align: center;
+    padding: 25px 15px;
+}
+
+header h1 { margin: 0 0 8px; }
+
+.container {
+    width: 92%;
+    max-width: 1000px;
+    margin: 25px auto;
+}
+
+.card {
+    background: white;
+    padding: 24px;
+    border-radius: 14px;
+    margin-bottom: 22px;
+    box-shadow: 0 4px 15px rgba(0,0,0,.08);
+}
+
+h2 { color: #273c75; margin-top: 0; }
+
+button {
+    border: 0;
+    background: #273c75;
+    color: white;
+    padding: 12px 18px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 15px;
+    margin: 5px 4px 5px 0;
+}
+
+button:hover { background: #192a56; }
+
+button:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
+.option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: #edf1fa;
+    color: #202b43;
+    border: 1px solid #d6ddeb;
+    margin: 10px 0;
+}
+
+.option:hover { background: #dce6ff; }
+
+.option.selected {
+    background: #dbeafe;
+    border: 2px solid #273c75;
+}
+
+.top-info {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+input {
+    padding: 12px;
+    border: 1px solid #b7c1d6;
+    border-radius: 7px;
+    font-size: 15px;
+    width: 100%;
+    margin: 8px 0 12px;
+}
+
+.weather-result {
+    margin-top: 18px;
+    padding: 15px;
+    background: #edf4ff;
+    border-radius: 10px;
+    display: none;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th { background: #edf1fa; }
+
+footer {
+    text-align: center;
+    padding: 20px;
+    color: #64748b;
+}
+
+@media(max-width:600px) {
+    .top-info { flex-direction: column; }
+    .card { padding: 17px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>Interactive Quiz & Weather Dashboard</h1>
+    <p>Test your knowledge and check the weather</p>
+</header>
+
+<main class="container">
+
+    <!-- QUIZ -->
+    <section class="card">
+        <h2>Timed Quiz</h2>
+
+        <div class="top-info">
+            <span id="question-count">Question 1 / 5</span>
+            <span id="timer">Time: 30s</span>
+            <span id="score">Score: 0</span>
+        </div>
+
+        <div id="quiz-area">
+            <h3 id="question">Loading question...</h3>
+            <div id="options"></div>
+            <button id="next-btn" onclick="nextQuestion()" disabled>
+                Next Question
+            </button>
+        </div>
+
+        <div id="result-area" style="display:none;">
+            <h3 id="final-score"></h3>
+            <p id="result-message"></p>
+            <label for="player-name">Enter your name for the leaderboard:</label>
+            <input id="player-name" type="text" placeholder="Your name">
+            <button onclick="saveScore()">Save Score</button>
+            <button onclick="startQuiz()">Play Again</button>
+        </div>
+    </section>
+
+    <!-- LEADERBOARD -->
+    <section class="card">
+        <h2>Leaderboard</h2>
+        <p>Top scores saved in your browser.</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Name</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+                <tr><td colspan="3">No scores yet.</td></tr>
+            </tbody>
+        </table>
+
+        <button onclick="clearLeaderboard()">Clear Leaderboard</button>
+    </section>
+
+    <!-- WEATHER -->
+    <section class="card">
+        <h2>Weather Dashboard</h2>
+        <p>Search for a city to see its current weather.</p>
+
+        <label for="city">City Name</label>
+        <input id="city" type="text" placeholder="e.g. Gwalior">
+
+        <button onclick="getWeather()">Search Weather</button>
+
+        <p id="weather-status" aria-live="polite"></p>
+
+        <div class="weather-result" id="weather-result">
+            <h3 id="weather-city"></h3>
+            <p id="weather-condition"></p>
+            <p id="weather-temperature"></p>
+            <p id="weather-humidity"></p>
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    Full Stack Development Lab | Quiz & Weather Project
+</footer>
+
+<script>
+const questions = [
+    {
+        question: "Which language is used to structure a web page?",
+        options: ["CSS", "HTML", "Python", "SQL"],
+        answer: 1
+    },
+    {
+        question: "Which language is used to style web pages?",
+        options: ["HTML", "Java", "CSS", "C++"],
+        answer: 2
+    },
+    {
+        question: "Which method converts JSON text into a JavaScript object?",
+        options: ["JSON.parse()", "JSON.stringify()", "JSON.convert()", "JSON.object()"],
+        answer: 0
+    },
+    {
+        question: "Which browser storage persists after the browser is closed?",
+        options: ["sessionStorage", "localStorage", "Temporary variable", "DOM"],
+        answer: 1
+    },
+    {
+        question: "Which JavaScript function runs code repeatedly at intervals?",
+        options: ["setTimeout()", "fetch()", "setInterval()", "alert()"],
+        answer: 2
+    }
+];
+
+let currentQuestion = 0;
+let score = 0;
+let selectedAnswer = null;
+let timeLeft = 30;
+let timerInterval = null;
+let quizFinished = false;
+
+const questionElement = document.getElementById("question");
+const optionsElement = document.getElementById("options");
+const timerElement = document.getElementById("timer");
+const nextButton = document.getElementById("next-btn");
+
+function startQuiz() {
+    clearInterval(timerInterval);
+
+    currentQuestion = 0;
+    score = 0;
+    selectedAnswer = null;
+    quizFinished = false;
+    timeLeft = 30;
+
+    document.getElementById("quiz-area").style.display = "block";
+    document.getElementById("result-area").style.display = "none";
+    document.getElementById("score").textContent = "Score: 0";
+
+    showQuestion();
+    startTimer();
+}
+
+function showQuestion() {
+    selectedAnswer = null;
+    timeLeft = 30;
+
+    const q = questions[currentQuestion];
+
+    document.getElementById("question-count").textContent =
+        `Question ${currentQuestion + 1} / ${questions.length}`;
+
+    questionElement.textContent = q.question;
+    optionsElement.innerHTML = "";
+
+    q.options.forEach((option, index) => {
+        const button = document.createElement("button");
+        button.className = "option";
+        button.textContent = option;
+        button.onclick = () => selectAnswer(index, button);
+        optionsElement.appendChild(button);
+    });
+
+    nextButton.disabled = true;
+    nextButton.textContent =
+        currentQuestion === questions.length - 1
+            ? "Finish Quiz"
+            : "Next Question";
+
+    timerElement.textContent = "Time: 30s";
+}
+
+function selectAnswer(index, button) {
+    if (selectedAnswer !== null || quizFinished) return;
+
+    selectedAnswer = index;
+
+    document.querySelectorAll(".option").forEach(option => {
+        option.disabled = true;
+    });
+
+    button.classList.add("selected");
+    nextButton.disabled = false;
+}
+
+function startTimer() {
+    clearInterval(timerInterval);
+
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        timerElement.textContent = `Time: ${timeLeft}s`;
+
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            nextQuestion();
+        }
+    }, 1000);
+}
+
+function nextQuestion() {
+    if (quizFinished) return;
+
+    clearInterval(timerInterval);
+
+    if (selectedAnswer === questions[currentQuestion].answer) {
+        score++;
+        document.getElementById("score").textContent = `Score: ${score}`;
+    }
+
+    currentQuestion++;
+
+    if (currentQuestion >= questions.length) {
+        finishQuiz();
+    } else {
+        showQuestion();
+        startTimer();
+    }
+}
+
+function finishQuiz() {
+    quizFinished = true;
+    clearInterval(timerInterval);
+
+    document.getElementById("quiz-area").style.display = "none";
+    document.getElementById("result-area").style.display = "block";
+
+    document.getElementById("final-score").textContent =
+        `Your Final Score: ${score} / ${questions.length}`;
+
+    document.getElementById("result-message").textContent =
+        score === questions.length
+            ? "Excellent! All answers correct."
+            : "Quiz completed. Try again to improve your score.";
+}
+
+function saveScore() {
+    const name = document.getElementById("player-name").value.trim();
+
+    if (!name) {
+        alert("Please enter your name.");
+        return;
+    }
+
+    const leaderboard = JSON.parse(
+        localStorage.getItem("quizLeaderboard") || "[]"
+    );
+
+    leaderboard.push({
+        name: name,
+        score: score,
+        date: new Date().toLocaleDateString()
+    });
+
+    leaderboard.sort((a, b) => b.score - a.score);
+
+    localStorage.setItem(
+        "quizLeaderboard",
+        JSON.stringify(leaderboard.slice(0, 10))
+    );
+
+    document.getElementById("player-name").value = "";
+    displayLeaderboard();
+    alert("Your score has been saved!");
+}
+
+function displayLeaderboard() {
+    const leaderboard = JSON.parse(
+        localStorage.getItem("quizLeaderboard") || "[]"
+    );
+
+    const body = document.getElementById("leaderboard-body");
+    body.innerHTML = "";
+
+    if (leaderboard.length === 0) {
+        body.innerHTML = '<tr><td colspan="3">No scores yet.</td></tr>';
+        return;
+    }
+
+    leaderboard.forEach((entry, index) => {
+        const row = document.createElement("tr");
+
+        [index + 1, entry.name, entry.score + " / 5"].forEach(value => {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            row.appendChild(cell);
+        });
+
+        body.appendChild(row);
+    });
+}
+
+function clearLeaderboard() {
+    if (confirm("Are you sure you want to clear all scores?")) {
+        localStorage.removeItem("quizLeaderboard");
+        displayLeaderboard();
+    }
+}
+
+async function getWeather() {
+    const city = document.getElementById("city").value.trim();
+    const status = document.getElementById("weather-status");
+    const result = document.getElementById("weather-result");
+
+    if (!city) {
+        status.textContent = "Please enter a city name.";
+        result.style.display = "none";
+        return;
+    }
+
+    status.textContent = "Loading weather...";
+    result.style.display = "none";
+
+    try {
+        const geoUrl =
+            "https://geocoding-api.open-meteo.com/v1/search?name=" +
+            encodeURIComponent(city) + "&count=1&language=en&format=json";
+
+        const geoResponse = await fetch(geoUrl);
+
+        if (!geoResponse.ok) throw new Error("Geocoding request failed");
+
+        const geoData = await geoResponse.json();
+
+        if (!geoData.results || geoData.results.length === 0) {
+            throw new Error("City not found");
+        }
+
+        const place = geoData.results[0];
+
+        const weatherUrl =
+            "https://api.open-meteo.com/v1/forecast?latitude=" +
+            place.latitude +
+            "&longitude=" +
+            place.longitude +
+            "&current=temperature_2m,relative_humidity_2m,weather_code";
+
+        const weatherResponse = await fetch(weatherUrl);
+
+        if (!weatherResponse.ok) throw new Error("Weather request failed");
+
+        const weatherData = await weatherResponse.json();
+        const current = weatherData.current;
+
+        document.getElementById("weather-city").textContent =
+            place.name + (place.country ? ", " + place.country : "");
+
+        document.getElementById("weather-condition").textContent =
+            "Condition: " + weatherDescription(current.weather_code);
+
+        document.getElementById("weather-temperature").textContent =
+            "Temperature: " + current.temperature_2m + " °C";
+
+        document.getElementById("weather-humidity").textContent =
+            "Humidity: " + current.relative_humidity_2m + "%";
+
+        status.textContent = "Weather information updated.";
+        result.style.display = "block";
+
+    } catch (error) {
+        status.textContent =
+            error.message === "City not found"
+                ? "City not found. Please try another city."
+                : "Unable to fetch weather. Check your internet connection and try again.";
+    }
+}
+
+function weatherDescription(code) {
+    if (code === 0) return "Clear sky";
+    if ([1, 2, 3].includes(code)) return "Partly cloudy or overcast";
+    if ([45, 48].includes(code)) return "Fog";
+    if ([51, 53, 55].includes(code)) return "Drizzle";
+    if ([61, 63, 65].includes(code)) return "Rain";
+    if ([71, 73, 75].includes(code)) return "Snow";
+    if ([80, 81, 82].includes(code)) return "Rain showers";
+    if ([95, 96, 99].includes(code)) return "Thunderstorm";
+    return "Weather condition code: " + code;
+}
+
+displayLeaderboard();
+startQuiz();
+</script>
+
+</body>
+</html>
